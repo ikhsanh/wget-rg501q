@@ -10,28 +10,46 @@ mount -o remount,rw /
 # 2. Download files directly from GitHub
 # Source: https://github.com/ikhsanh/wget-rg501q
 GITHUB_RAW="https://raw.githubusercontent.com/ikhsanh/wget-rg501q/main"
+TMP_DIR="/tmp/wget_install"
 
-# Download function with error checking
+# Create temporary directory
+mkdir -p "$TMP_DIR"
+
+# Download function with error checking (downloads to /tmp first)
 download() {
     local url="$1"
-    local dest="$2"
-    echo "  -> $dest"
-    curl -fsSL -o "$dest" "$url" || { echo "ERROR: Failed to download $url"; exit 1; }
+    local filename="$2"
+    local tmp_path="$TMP_DIR/$filename"
+    echo "  -> Downloading $filename to $TMP_DIR ..."
+    curl -fsSL -o "$tmp_path" "$url" || { echo "ERROR: Failed to download $url"; exit 1; }
 }
 
-echo "Downloading libraries to /usr/lib ..."
-download "$GITHUB_RAW/libgnutls.so.30.22.0"  /usr/lib/libgnutls.so.30.22.0
-download "$GITHUB_RAW/libhogweed.so.4"        /usr/lib/libhogweed.so.4.4
-download "$GITHUB_RAW/libidn2.so.0"           /usr/lib/libidn2.so.0.3.4
-download "$GITHUB_RAW/libnettle.so.6.4"       /usr/lib/libnettle.so.6.4
-download "$GITHUB_RAW/libunistring.so.2.1.0"  /usr/lib/libunistring.so.2.1.0
+echo "Downloading libraries to $TMP_DIR ..."
+download "$GITHUB_RAW/libgnutls.so.30.22.0"  "libgnutls.so.30.22.0"
+download "$GITHUB_RAW/libhogweed.so.4"        "libhogweed.so.4.4"
+download "$GITHUB_RAW/libidn2.so.0"           "libidn2.so.0.3.4"
+download "$GITHUB_RAW/libnettle.so.6.4"       "libnettle.so.6.4"
+download "$GITHUB_RAW/libunistring.so.2.1.0"  "libunistring.so.2.1.0"
+download "$GITHUB_RAW/wget"                   "wget"
 
-echo "Downloading wget to /usr/bin ..."
-download "$GITHUB_RAW/wget" /usr/bin/wget
+echo "Download to $TMP_DIR complete."
 
-echo "Download complete."
+# 3. Move files from /tmp to their final destinations
+echo "Moving libraries from $TMP_DIR to /usr/lib ..."
+mv "$TMP_DIR/libgnutls.so.30.22.0"  /usr/lib/libgnutls.so.30.22.0
+mv "$TMP_DIR/libhogweed.so.4.4"     /usr/lib/libhogweed.so.4.4
+mv "$TMP_DIR/libidn2.so.0.3.4"      /usr/lib/libidn2.so.0.3.4
+mv "$TMP_DIR/libnettle.so.6.4"      /usr/lib/libnettle.so.6.4
+mv "$TMP_DIR/libunistring.so.2.1.0" /usr/lib/libunistring.so.2.1.0
 
-# 3. Set permissions and create symlinks
+echo "Moving wget from $TMP_DIR to /usr/bin ..."
+mv "$TMP_DIR/wget" /usr/bin/wget
+
+# Cleanup temp directory
+rm -rf "$TMP_DIR"
+echo "Temporary files cleaned up."
+
+# 4. Set permissions and create symlinks
 echo "Setting permissions and symbolic links..."
 cd /usr/lib || { echo "ERROR: Failed to change directory to /usr/lib"; exit 1; }
 
